@@ -1,18 +1,23 @@
 package com.example.kotlindiveinto
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -33,6 +38,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,7 +73,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             KotlinDiveIntoTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Content(modifier = Modifier.padding(innerPadding), value = "10 кг" )
+                    Content(modifier = Modifier.padding(innerPadding), value = "10 кг")
 
                 }
             }
@@ -76,14 +82,15 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Content(value:String, modifier: Modifier){
+fun Content(value: String, modifier: Modifier) {
     Column(modifier = modifier.fillMaxSize()) {
         Greeting(
             value = value,
             modifier = Modifier
         )
         Box(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .background(Color.Unspecified)
                 .height(24.dp)
 
@@ -115,8 +122,10 @@ fun GreetingCrossFade(value: String, modifier: Modifier = Modifier) {
             Text("RESET")
         }
         Box(modifier = Modifier) {
-            Crossfade(targetState = done,
-                animationSpec = tween(600)) { isDone ->
+            Crossfade(
+                targetState = done,
+                animationSpec = tween(600), label = "crossfade"
+            ) { isDone ->
                 if (isDone) {
                     Row(
                         modifier = Modifier
@@ -140,16 +149,22 @@ fun GreetingCrossFade(value: String, modifier: Modifier = Modifier) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        var animate by remember {
+                            mutableStateOf(false)
+                        }
                         DragImage(
                             requireX = positions.x,
-                            value = value,
-                            onValueChange = { done = true }
+                            value1 = value,
+                            onValueChange = { done = true },
+                            animate = animate
                         )
                         DropTargetImage(
                             modifier = Modifier.onGloballyPositioned { coordinates ->
                                 positions = coordinates.positionInRoot()
-                            },
-                        )
+                            }
+                        ) {
+                            animate = true
+                        }
                     }
                 }
             }
@@ -157,6 +172,7 @@ fun GreetingCrossFade(value: String, modifier: Modifier = Modifier) {
 
     }
 }
+
 @Composable
 fun Greeting(value: String, modifier: Modifier = Modifier) {
     var positions by remember {
@@ -217,18 +233,24 @@ fun Greeting(value: String, modifier: Modifier = Modifier) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        var animate by remember {
+                            mutableStateOf(false)
+                        }
                         DragImage(
                             requireX = positions.x,
-                            value = value,
+                            value1 = value,
                             onValueChange = {
                                 done = true
-                            }
+                            },
+                            animate = animate
                         )
                         DropTargetImage(
                             modifier = Modifier.onGloballyPositioned { coordinates ->
                                 positions = coordinates.positionInRoot()
-                            },
-                        )
+                            }
+                        ) {
+                            animate = true
+                        }
                     }
 
                 }
@@ -239,17 +261,30 @@ fun Greeting(value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun DragImage(value: String, requireX: Float, onValueChange: () -> Unit) {
+fun DragImage(value1: String, requireX: Float, onValueChange: () -> Unit, animate: Boolean) {
+
     Box(modifier = Modifier.zIndex(1f)) {
         var offsetX by remember { mutableFloatStateOf(0f) }
         var size by remember {
             mutableStateOf(IntSize(0, 0))
         }
 
+        LaunchedEffect(animate) {
+            if (animate) {
+                Animatable(offsetX).animateTo(
+                    targetValue = requireX - size.width / 5,
+                    animationSpec =  tween(300)
+                ) {
+                    Log.e("TEST", "value $value")
+                    offsetX = value// Оновлення offsetX на кожному кроці
+                }
+                onValueChange()
+            }
+        }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
                 .onGloballyPositioned { coordinates ->
                     size = coordinates.size
@@ -262,6 +297,7 @@ fun DragImage(value: String, requireX: Float, onValueChange: () -> Unit) {
                         }
                     }) { change, dragAmount ->
                         change.consume()
+                        Log.e("TEST", " drag amount $dragAmount")
                         offsetX += dragAmount.x
                         if (offsetX + size.width / 2 > requireX) {
                             onValueChange()
@@ -271,9 +307,9 @@ fun DragImage(value: String, requireX: Float, onValueChange: () -> Unit) {
 
         ) {
             Text(
-                text = value,
+                text = value1,
                 color = Color.White,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
             )
             Image(
                 imageVector = Icons.AutoMirrored.Sharp.KeyboardArrowRight,
@@ -287,6 +323,7 @@ fun DragImage(value: String, requireX: Float, onValueChange: () -> Unit) {
 @Composable
 fun DropTargetImage(
     modifier: Modifier,
+    onAcceptClicked: () -> Unit
 ) {
     Text(
         text = "Прийняти".uppercase(),
@@ -294,6 +331,9 @@ fun DropTargetImage(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .zIndex(0.1f)
+            .clickable {
+                onAcceptClicked()
+            }
     )
 }
 

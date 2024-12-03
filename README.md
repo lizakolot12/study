@@ -1,2 +1,2 @@
 Some info...
-[video.mp4](video.mp4)
+![gif-20241203-155330.gif](gif-20241203-155330.gif)

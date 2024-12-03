@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,16 +67,96 @@ class MainActivity : ComponentActivity() {
         setContent {
             KotlinDiveIntoTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        value = "10 кг",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    Content(modifier = Modifier.padding(innerPadding), value = "10 кг" )
+
                 }
             }
         }
     }
 }
 
+@Composable
+fun Content(value:String, modifier: Modifier){
+    Column(modifier = modifier.fillMaxSize()) {
+        Greeting(
+            value = value,
+            modifier = Modifier
+        )
+        Box(
+            modifier = Modifier.fillMaxWidth()
+                .background(Color.Unspecified)
+                .height(24.dp)
+
+        )
+        GreetingCrossFade(
+            value = value,
+            modifier = Modifier
+        )
+        Spacer(
+            modifier = Modifier
+                .weight(1f)
+                .background(Color.Green)
+        )
+    }
+}
+
+@Composable
+fun GreetingCrossFade(value: String, modifier: Modifier = Modifier) {
+    var positions by remember {
+        mutableStateOf(Offset(0f, 0f))
+    }
+    var done by remember {
+        mutableStateOf(false)
+    }
+    Column(
+        verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Button(onClick = { done = false }) {
+            Text("RESET")
+        }
+        Box(modifier = Modifier) {
+            Crossfade(targetState = done,
+                animationSpec = tween(600)) { isDone ->
+                if (isDone) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .background(Color.Gray, shape = RoundedCornerShape(4.dp))
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = value, color = Color.White)
+                        Text(text = value, color = Color.White)
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .background(Color.Gray, shape = RoundedCornerShape(4.dp))
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        DragImage(
+                            requireX = positions.x,
+                            value = value,
+                            onValueChange = { done = true }
+                        )
+                        DropTargetImage(
+                            modifier = Modifier.onGloballyPositioned { coordinates ->
+                                positions = coordinates.positionInRoot()
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
+    }
+}
 @Composable
 fun Greeting(value: String, modifier: Modifier = Modifier) {
     var positions by remember {
@@ -84,7 +166,6 @@ fun Greeting(value: String, modifier: Modifier = Modifier) {
         mutableStateOf(false)
     }
     Column(
-        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Button(onClick = { done = false }) {
@@ -153,11 +234,6 @@ fun Greeting(value: String, modifier: Modifier = Modifier) {
                 }
             }
         }
-        Spacer(
-            modifier = Modifier
-                .weight(1f)
-                .background(Color.Green)
-        )
 
     }
 }
@@ -226,7 +302,7 @@ fun DropTargetImage(
 @Composable
 fun GreetingPreview() {
     KotlinDiveIntoTheme {
-        Greeting(
+        Content(
             value = "10 кг",
             modifier = Modifier
         )
